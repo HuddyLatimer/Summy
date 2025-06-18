@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Summy</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    <link rel="icon" type="image/png" href="assets/icons/favicon.png">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="assets/js/router.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            min-height: 100vh;
+            display: none;
+        }
+
+        body.authorized {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .nav-link:hover {
+            background: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            flex-grow: 1;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-color);
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .user-list {
+            margin-top: 2rem;
+        }
+
+        .user-card {
+            background: var(--background-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-info p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .credit-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .credit-input {
+            width: 100px;
+        }
+
+        .status-message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #dcfce7;
+            color: #166534;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #818cf8;
+            color: white;
+        }
+
+        .badge-restricted {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .loading::after {
+            content: "";
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        #loadingScreen .loading {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .user-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .user-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .credit-controls {
+            background: var(--background-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .credit-input {
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-title {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .search-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-restricted {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <div style="text-align: center;">
+            <div class="loading"></div>
+            <p style="margin-top: 1rem; color: #64748b;">Verifying access...</p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="home.html" class="nav-logo">Summy Admin</a>
+            <div class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="#" class="nav-link" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="user-stats">
+            <div class="stat-card">
+                <div class="stat-title">Total Users</div>
+                <div class="stat-value" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Active Today</div>
+                <div class="stat-value" id="activeUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Summaries</div>
+                <div class="stat-value" id="totalSummaries">-</div>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <div class="section-title">
+                User Management
+                <div class="loading" id="loadingIndicator">
+                    <div class="loading-spinner"></div>
+                    <span>Loading...</span>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by email, user ID, or machine ID...">
+            </div>
+
+            <div id="userList" class="user-list"></div>
+
+            <div class="pagination">
+                <button id="prevPage" class="pagination-btn" disabled>Previous</button>
+                <button id="nextPage" class="pagination-btn" disabled>Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            where, 
+            getDocs,
+            doc,
+            updateDoc,
+            orderBy,
+            limit,
+            startAfter
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDg4G82fhK7jJqZu6M32YLM6xHYqIF4uks",
+            authDomain: "summy-f6228.firebaseapp.com",
+            projectId: "summy-f6228",
+            storageBucket: "summy-f6228.appspot.com",
+            messagingSenderId: "101212925588",
+            appId: "1:101212925588:web:0b98c948fafbcd8cbe4e81"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // The only allowed admin UID
+        const ADMIN_UID = 'byOAGsAR4fYRmpRcSqrGnrzYUmI2';
+        
+        let currentUser = null;
+        let lastVisible = null;
+        const USERS_PER_PAGE = 10;
+
+        // Check for admin access
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (user.uid !== ADMIN_UID) {
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // Is admin, show the page
+            currentUser = user;
+            document.body.classList.add('authorized');
+            document.getElementById('loadingScreen').style.display = 'none';
+            await loadUsers();
+        });
+
+        // Show status message
+        function showStatusMessage(message, type) {
+            const messageDiv = document.getElementById('statusMessage');
+            messageDiv.textContent = message;
+            messageDiv.className = `status-message ${type}`;
+            setTimeout(() => {
+                messageDiv.className = 'status-message';
+            }, 3000);
+        }
+
+        // Load users
+        async function loadUsers(searchTerm = '') {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) {
+                window.location.href = 'home.html';
+                return;
+            }
+
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '<div class="loading">Loading users...</div>';
+
+            try {
+                let q;
+                if (searchTerm) {
+                    q = query(
+                        collection(db, 'users'),
+                        where('email', '>=', searchTerm),
+                        where('email', '<=', searchTerm + '\uf8ff'),
+                        orderBy('email'),
+                        limit(USERS_PER_PAGE)
+                    );
+                } else {
+                    q = query(
+                        collection(db, 'users'),
+                        orderBy('email'),
+                        limit(USERS_PER_PAGE)
+                    );
+                }
+
+                const snapshot = await getDocs(q);
+                lastVisible = snapshot.docs[snapshot.docs.length - 1];
+                
+                if (snapshot.empty) {
+                    userList.innerHTML = '<div class="empty-state">No users found</div>';
+                    return;
+                }
+
+                userList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const isAdmin = doc.id === ADMIN_UID;
+                    
+                    userList.innerHTML += `
+                        <div class="user-card" id="user-${doc.id}">
+                            <div class="user-info">
+                                <h3>
+                                    ${userData.email}
+                                    ${isAdmin ? '<span class="badge badge-admin">Admin</span>' : ''}
+                                    ${userData.isRestricted ? '<span class="badge badge-restricted">Restricted</span>' : ''}
+                                </h3>
+                                <p>User ID: ${doc.id}</p>
+                                <p>Machine ID: ${userData.machineId || 'N/A'}</p>
+                                <p>IP Address: ${userData.ipAddress || 'N/A'}</p>
+                                <p>Created: ${new Date(userData.createdAt).toLocaleDateString()}</p>
+                                <p>Total Summaries: ${userData.totalSummaries || 0}</p>
+                            </div>
+                            <div class="credit-controls">
+                                <div class="input-group">
+                                    <input type="number" class="credit-input" id="credits-${doc.id}" 
+                                        value="${userData.credits || 0}" min="0">
+                                </div>
+                                <button class="btn" onclick="updateCredits('${doc.id}')">
+                                    Update Credits
+                                </button>
+                                <button class="btn ${userData.isRestricted ? 'btn-secondary' : 'btn-danger'}"
+                                    onclick="toggleRestriction('${doc.id}', ${!userData.isRestricted})">
+                                    ${userData.isRestricted ? 'Remove Restriction' : 'Restrict User'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                updatePagination();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showStatusMessage('Error loading users', 'error');
+            }
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const paginationDiv = document.getElementById('pagination');
+            if (lastVisible) {
+                paginationDiv.innerHTML = `
+                    <button class="page-btn" onclick="loadNextPage()">
+                        Load More
+                    </button>
+                `;
+            } else {
+                paginationDiv.innerHTML = '';
+            }
+        }
+
+        // Load next page
+        window.loadNextPage = async () => {
+            if (!lastVisible || !currentUser || currentUser.uid !== ADMIN_UID) return;
+
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            try {
+                let q;
+                if (searchTerm) {
+                    q = query(
+                        collection(db, 'users'),
+                        where('email', '>=', searchTerm),
+                        where('email', '<=', searchTerm + '\uf8ff'),
+                        orderBy('email'),
+                        startAfter(lastVisible),
+                        limit(USERS_PER_PAGE)
+                    );
+                } else {
+                    q = query(
+                        collection(db, 'users'),
+                        orderBy('email'),
+                        startAfter(lastVisible),
+                        limit(USERS_PER_PAGE)
+                    );
+                }
+
+                const snapshot = await getDocs(q);
+                lastVisible = snapshot.docs[snapshot.docs.length - 1];
+
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const isAdmin = doc.id === ADMIN_UID;
+                    
+                    document.getElementById('userList').innerHTML += `
+                        <div class="user-card" id="user-${doc.id}">
+                            <div class="user-info">
+                                <h3>
+                                    ${userData.email}
+                                    ${isAdmin ? '<span class="badge badge-admin">Admin</span>' : ''}
+                                    ${userData.isRestricted ? '<span class="badge badge-restricted">Restricted</span>' : ''}
+                                </h3>
+                                <p>User ID: ${doc.id}</p>
+                                <p>Machine ID: ${userData.machineId || 'N/A'}</p>
+                                <p>IP Address: ${userData.ipAddress || 'N/A'}</p>
+                                <p>Created: ${new Date(userData.createdAt).toLocaleDateString()}</p>
+                                <p>Total Summaries: ${userData.totalSummaries || 0}</p>
+                            </div>
+                            <div class="credit-controls">
+                                <div class="input-group">
+                                    <input type="number" class="credit-input" id="credits-${doc.id}" 
+                                        value="${userData.credits || 0}" min="0">
+                                </div>
+                                <button class="btn" onclick="updateCredits('${doc.id}')">
+                                    Update Credits
+                                </button>
+                                <button class="btn ${userData.isRestricted ? 'btn-secondary' : 'btn-danger'}"
+                                    onclick="toggleRestriction('${doc.id}', ${!userData.isRestricted})">
+                                    ${userData.isRestricted ? 'Remove Restriction' : 'Restrict User'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                updatePagination();
+            } catch (error) {
+                console.error('Error loading more users:', error);
+                showStatusMessage('Error loading more users', 'error');
+            }
+        };
+
+        // Search users
+        window.searchUsers = () => {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            loadUsers(searchTerm);
+        };
+
+        // Refresh users
+        window.refreshUsers = () => {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) return;
+            document.getElementById('searchInput').value = '';
+            loadUsers();
+        };
+
+        // Update user credits
+        window.updateCredits = async (userId) => {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) {
+                showStatusMessage('You do not have permission to update credits', 'error');
+                return;
+            }
+
+            const creditsInput = document.getElementById(`credits-${userId}`);
+            const newCredits = parseInt(creditsInput.value);
+
+            if (isNaN(newCredits) || newCredits < 0) {
+                showStatusMessage('Please enter a valid number of credits', 'error');
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, 'users', userId), {
+                    credits: newCredits
+                });
+                showStatusMessage('Credits updated successfully', 'success');
+            } catch (error) {
+                console.error('Error updating credits:', error);
+                showStatusMessage('Error updating credits', 'error');
+            }
+        };
+
+        // Toggle user restriction
+        window.toggleRestriction = async (userId, restrict) => {
+            if (!currentUser || currentUser.uid !== ADMIN_UID) {
+                showStatusMessage('You do not have permission to restrict users', 'error');
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, 'users', userId), {
+                    isRestricted: restrict
+                });
+                showStatusMessage(`User ${restrict ? 'restricted' : 'unrestricted'} successfully`, 'success');
+                await loadUsers(document.getElementById('searchInput').value.trim());
+            } catch (error) {
+                console.error('Error toggling restriction:', error);
+                showStatusMessage('Error updating user restriction', 'error');
+            }
+        };
+
+        // Make functions available globally
+        window.updateCredits = updateCredits;
+        window.toggleRestriction = toggleRestriction;
+        window.searchUsers = searchUsers;
+        window.refreshUsers = refreshUsers;
+        window.loadNextPage = loadNextPage;
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error signing out:', error);
+            }
+        });
+
+        // Enter key handler for search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+    </script>
+</body>
+</html> 
